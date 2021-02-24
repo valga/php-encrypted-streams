@@ -165,6 +165,29 @@ class AesDecryptingStreamTest extends TestCase
         $stream->seek(1);
     }
 
+    public function testAccurateTellWithPaddedEncryptionMethod()
+    {
+        $iv = new Cbc(random_bytes(openssl_cipher_iv_length('aes-256-cbc')));
+        $cipherText = openssl_encrypt(
+            random_bytes(2 * 1024 * 1024),
+            $iv->getOpenSslName(),
+            self::KEY,
+            OPENSSL_RAW_DATA,
+            $iv->getCurrentIv()
+        );
+        $stream = new AesDecryptingStream(Psr7\stream_for($cipherText), self::KEY, clone $iv);
+
+        $stream->rewind();
+        $data = $stream->read(8192);
+        $this->assertEquals(strlen($data), $stream->tell());
+
+        $stream->rewind();
+        $limitStream = new Psr7\LimitStream($stream, self::MB, 0);
+        $buffer = Psr7\stream_for();
+        Psr7\copy_to_stream($limitStream, $buffer);
+        $this->assertEquals(self::MB, $buffer->getSize());
+    }
+
     /**
      * @dataProvider cipherMethodProvider
      *
