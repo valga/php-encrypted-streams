@@ -98,6 +98,11 @@ class AesDecryptingStream implements StreamInterface
         }
     }
 
+    public function tell()
+    {
+        return $this->stream->tell() - strlen($this->cipherBuffer);
+    }
+
     private function decryptBlock(int $length): string
     {
         if ($this->cipherBuffer === '' && $this->stream->eof()) {
